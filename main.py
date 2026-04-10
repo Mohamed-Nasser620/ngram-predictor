@@ -6,12 +6,17 @@ import os
 from dotenv import load_dotenv
 
 from src.data_prep.normalizer import Normalizer
+from src.model.ngram_model import NGramModel
 
 # Load configuration from config/.env
-load_dotenv(os.path.join("config", ".env"))
+load_dotenv(os.path.join("config", ".env"), override=True)
 
 TRAIN_RAW_DIR = os.getenv("TRAIN_RAW_DIR")
 TRAIN_TOKENS = os.getenv("TRAIN_TOKENS")
+MODEL = os.getenv("MODEL")
+VOCAB = os.getenv("VOCAB")
+UNK_THRESHOLD = int(os.getenv("UNK_THRESHOLD", "3"))
+NGRAM_ORDER = int(os.getenv("NGRAM_ORDER", "4"))
 
 # Development limit for faster iteration
 DEV_SENTENCE_LIMIT = 100
@@ -53,14 +58,38 @@ def run_data_prep() -> None:
     print(f"Saved {len(all_tokenized_sentences)} sentences to {TRAIN_TOKENS}")
 
 
+def run_model() -> None:
+    """Execute the full Module 2 model-building pipeline."""
+    model = NGramModel(ngram_order=NGRAM_ORDER, unk_threshold=UNK_THRESHOLD)
+
+    # Step 1 — Build vocabulary with UNK thresholding
+    model.build_vocab(TRAIN_TOKENS)
+    print(f"Vocabulary: {len(model.vocab)} words (UNK_THRESHOLD={UNK_THRESHOLD})")
+
+    # Step 2-3 — Build counts and compute MLE probabilities
+    model.build_counts_and_probabilities(TRAIN_TOKENS)
+    for order in range(1, NGRAM_ORDER + 1):
+        table = model.probabilities.get(order, {})
+        entries = len(table)
+        print(f"  {order}-gram: {entries} entries")
+
+    # Step 4-5 — Save model and vocabulary
+    model.save_model(MODEL)
+    model.save_vocab(VOCAB)
+    print(f"Saved model to {MODEL}")
+    print(f"Saved vocab to {VOCAB}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="N-gram Predictor")
-    parser.add_argument("--step", required=True, choices=["dataprep"],
+    parser.add_argument("--step", required=True, choices=["dataprep", "model"],
                         help="Pipeline step to run")
     args = parser.parse_args()
 
     if args.step == "dataprep":
         run_data_prep()
+    elif args.step == "model":
+        run_model()
 
 
 if __name__ == "__main__":
