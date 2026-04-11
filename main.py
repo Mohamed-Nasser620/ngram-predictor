@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 
 from src.data_prep.normalizer import Normalizer
+from src.inference.predictor import Predictor
 from src.model.ngram_model import NGramModel
 
 # Load configuration from config/.env
@@ -17,6 +18,7 @@ MODEL = os.getenv("MODEL")
 VOCAB = os.getenv("VOCAB")
 UNK_THRESHOLD = int(os.getenv("UNK_THRESHOLD", "3"))
 NGRAM_ORDER = int(os.getenv("NGRAM_ORDER", "4"))
+TOP_K = int(os.getenv("TOP_K", "3"))
 
 # Development limit for faster iteration
 DEV_SENTENCE_LIMIT = 100
@@ -80,9 +82,30 @@ def run_model() -> None:
     print(f"Saved vocab to {VOCAB}")
 
 
+def run_inference() -> None:
+    """Execute the Module 3 inference pipeline."""
+    # Load pre-built model
+    model = NGramModel(ngram_order=NGRAM_ORDER, unk_threshold=UNK_THRESHOLD)
+    model.load(MODEL, VOCAB)
+    print(f"Loaded model ({NGRAM_ORDER}-gram, vocab={len(model.vocab)})")
+
+    normalizer = Normalizer()
+    predictor = Predictor(model, normalizer)
+
+    print("Enter text (or 'q' to quit):")
+    while True:
+        text = input("> ").strip()
+        if text.lower() == "q":
+            break
+        predictions = predictor.predict_next(text, TOP_K)
+        print(predictions)
+        print("Enter text (or 'q' to quit):")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="N-gram Predictor")
-    parser.add_argument("--step", required=True, choices=["dataprep", "model"],
+    parser.add_argument("--step", required=True,
+                        choices=["dataprep", "model", "inference"],
                         help="Pipeline step to run")
     args = parser.parse_args()
 
@@ -90,6 +113,8 @@ def main() -> None:
         run_data_prep()
     elif args.step == "model":
         run_model()
+    elif args.step == "inference":
+        run_inference()
 
 
 if __name__ == "__main__":
