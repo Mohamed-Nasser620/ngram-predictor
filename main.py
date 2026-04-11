@@ -20,10 +20,6 @@ UNK_THRESHOLD = int(os.getenv("UNK_THRESHOLD", "3"))
 NGRAM_ORDER = int(os.getenv("NGRAM_ORDER", "4"))
 TOP_K = int(os.getenv("TOP_K", "3"))
 
-# Development limit for faster iteration
-DEV_SENTENCE_LIMIT = 100
-
-
 def run_data_prep() -> None:
     """Execute the full Module 1 data-preparation pipeline."""
     normalizer = Normalizer()
@@ -49,11 +45,6 @@ def run_data_prep() -> None:
         all_tokenized_sentences.extend(tokenized)
 
         print(f"  Book {i}: {len(tokenized)} sentences")
-
-        # Dev limit: stop early once we have enough sentences
-        if len(all_tokenized_sentences) >= DEV_SENTENCE_LIMIT:
-            all_tokenized_sentences = all_tokenized_sentences[:DEV_SENTENCE_LIMIT]
-            break
 
     # Step 6 — Save to output file
     normalizer.save(all_tokenized_sentences, TRAIN_TOKENS)
