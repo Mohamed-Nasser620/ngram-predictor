@@ -83,7 +83,7 @@ def run_model() -> None:
 
 
 def run_inference() -> None:
-    """Execute the Module 3 inference pipeline."""
+    """Execute the Module 3 interactive CLI prediction loop."""
     # Load pre-built model
     model = NGramModel(ngram_order=NGRAM_ORDER, unk_threshold=UNK_THRESHOLD)
     model.load(MODEL, VOCAB)
@@ -92,20 +92,23 @@ def run_inference() -> None:
     normalizer = Normalizer()
     predictor = Predictor(model, normalizer)
 
-    print("Enter text (or 'q' to quit):")
-    while True:
-        text = input("> ").strip()
-        if text.lower() == "q":
-            break
-        predictions = predictor.predict_next(text, TOP_K)
-        print(predictions)
-        print("Enter text (or 'q' to quit):")
+    print("Enter text to predict the next word (type 'quit' or Ctrl+C to exit):")
+    try:
+        while True:
+            text = input("\n> ").strip()
+            if text.lower() == "quit":
+                break
+            predictions = predictor.predict_next(text, TOP_K)
+            print(f"Predictions: {predictions}")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    print("\nGoodbye.")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="N-gram Predictor")
     parser.add_argument("--step", required=True,
-                        choices=["dataprep", "model", "inference"],
+                        choices=["dataprep", "model", "inference", "all"],
                         help="Pipeline step to run")
     args = parser.parse_args()
 
@@ -114,6 +117,10 @@ def main() -> None:
     elif args.step == "model":
         run_model()
     elif args.step == "inference":
+        run_inference()
+    elif args.step == "all":
+        run_data_prep()
+        run_model()
         run_inference()
 
 
